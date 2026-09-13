@@ -1,0 +1,62 @@
+name: AWUS Vendor Build
+
+on:
+  push:
+    branches:
+      - awus-v1242-vendor-build
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-vendor:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: awus-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, xml, fileinfo, curl, zip, openssl
+          tools: composer:v2
+          coverage: none
+
+      - name: PHP and Composer versions
+        run: |
+          php -v
+          composer --version
+          php -m | sort
+
+      - name: Composer validate
+        run: composer validate --no-interaction
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress --no-scripts
+
+      - name: Verify vendor autoload
+        run: |
+          test -f vendor/autoload.php
+          php -r "require 'vendor/autoload.php'; echo 'vendor-autoload: PASS'.PHP_EOL;"
+          composer show laravel/framework laravel/tinker
+
+      - name: Package vendor and lock
+        run: |
+          test -f composer.lock
+          zip -qr ../AWUS-V1.2.4.2-COMPOSER-VENDOR.zip vendor composer.lock
+          sha256sum ../AWUS-V1.2.4.2-COMPOSER-VENDOR.zip | tee ../AWUS-V1.2.4.2-COMPOSER-VENDOR.sha256
+
+      - name: Upload vendor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWUS-V1.2.4.2-COMPOSER-VENDOR
+          path: |
+            AWUS-V1.2.4.2-COMPOSER-VENDOR.zip
+            AWUS-V1.2.4.2-COMPOSER-VENDOR.sha256
+          if-no-files-found: error
+          retention-days: 1
