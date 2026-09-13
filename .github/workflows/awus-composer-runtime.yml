@@ -1,0 +1,47 @@
+name: AWUS Composer Runtime
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP 8.4 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqlnd, pdo_mysql, mbstring, dom, xml, xmlreader, xmlwriter, fileinfo, curl, zip, openssl
+          tools: composer:v2
+          coverage: none
+
+      - name: Package Composer and MySQL extensions
+        run: |
+          set -euxo pipefail
+          EXT_DIR="$(php-config --extension-dir)"
+          mkdir -p pack/extensions
+          for ext in mysqlnd pdo_mysql; do
+            test -f "$EXT_DIR/$ext.so"
+            cp "$EXT_DIR/$ext.so" pack/extensions/
+          done
+          cp "$(command -v composer)" pack/composer
+          chmod +x pack/composer
+          composer --version
+          php -i | grep '^PHP API' | head -1 > pack/php-api.txt
+          tar -czf AWUS-COMPOSER-RUNTIME.tar.gz -C pack .
+          sha256sum AWUS-COMPOSER-RUNTIME.tar.gz > AWUS-COMPOSER-RUNTIME.sha256
+
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWUS-COMPOSER-RUNTIME
+          path: |
+            AWUS-COMPOSER-RUNTIME.tar.gz
+            AWUS-COMPOSER-RUNTIME.sha256
+          retention-days: 1
