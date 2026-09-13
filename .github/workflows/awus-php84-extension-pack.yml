@@ -1,0 +1,49 @@
+name: AWUS PHP 8.4 Extension Pack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, xml, xmlreader, xmlwriter, pdo_mysql, mbstring, fileinfo, curl, zip, openssl
+          coverage: none
+
+      - name: Collect compatible extensions
+        run: |
+          set -euxo pipefail
+          php -v
+          EXT_DIR="$(php-config --extension-dir)"
+          mkdir -p pack/extensions
+          for ext in dom xml xmlreader xmlwriter pdo_mysql mbstring curl zip; do
+            src="$EXT_DIR/$ext.so"
+            test -f "$src"
+            cp "$src" pack/extensions/
+            ldd "$src" || true
+          done
+          php -i | grep '^PHP API' | head -1 > pack/php-api.txt
+          php -i | grep '^PHP Extension' | head -1 >> pack/php-api.txt
+          php -i | grep '^Zend Extension' | head -1 >> pack/php-api.txt
+          php -i | grep '^extension_dir' | head -1 >> pack/php-api.txt
+          tar -czf AWUS-PHP84-EXTENSIONS.tar.gz -C pack .
+          sha256sum AWUS-PHP84-EXTENSIONS.tar.gz > AWUS-PHP84-EXTENSIONS.sha256
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWUS-PHP84-EXTENSIONS
+          path: |
+            AWUS-PHP84-EXTENSIONS.tar.gz
+            AWUS-PHP84-EXTENSIONS.sha256
+          retention-days: 1
