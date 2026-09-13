@@ -46,7 +46,8 @@ jobs:
         run: |
           test -f vendor/autoload.php
           php -r "require 'vendor/autoload.php'; echo 'vendor-autoload: PASS'.PHP_EOL;"
-          composer show laravel/framework laravel/tinker
+          composer show laravel/framework
+          composer show laravel/tinker
 
       - name: Package vendor and lock
         working-directory: awus-build
