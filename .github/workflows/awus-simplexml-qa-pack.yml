@@ -17,7 +17,8 @@ jobs:
         run: |
           set -eux
           mkdir -p artifact/extensions
-          SIMPLEXML=$(php -i | awk -F'=> ' '/^extension_dir =>/{print $2; exit}')/simplexml.so
+          EXT_DIR=$(php -r 'echo ini_get("extension_dir");')
+          SIMPLEXML="$EXT_DIR/simplexml.so"
           test -f "$SIMPLEXML"
           cp "$SIMPLEXML" artifact/extensions/simplexml.so
           php -i | grep '^PHP API' > artifact/php-api.txt
