@@ -1,0 +1,29 @@
+name: AWUS PHP 8.4 SimpleXML QA Pack
+on:
+  push:
+    paths:
+      - '.github/workflows/awus-simplexml-qa-pack.yml'
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Setup PHP 8.4 XML
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: simplexml, xml, dom, xmlreader, xmlwriter, mbstring
+          coverage: none
+      - name: Package exact ABI extension
+        run: |
+          set -eux
+          mkdir -p artifact/extensions
+          SIMPLEXML=$(php -i | awk -F'=> ' '/^extension_dir =>/{print $2; exit}')/simplexml.so
+          test -f "$SIMPLEXML"
+          cp "$SIMPLEXML" artifact/extensions/simplexml.so
+          php -i | grep '^PHP API' > artifact/php-api.txt
+      - name: Upload QA runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWUS-PHP84-SIMPLEXML-QA
+          path: artifact
+          retention-days: 1
