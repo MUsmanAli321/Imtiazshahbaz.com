@@ -1,0 +1,26 @@
+name: AWUS SimpleXLSX Dependency Pack
+on:
+  push:
+    paths:
+      - '.github/workflows/awus-simplexlsx-pack.yml'
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build maintained SimpleXLSX package
+        run: |
+          mkdir -p build
+          cd build
+          composer init --name=awus/simplexlsx-pack --require=shuchkin/simplexlsx:^1.1 --no-interaction
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          php -r "require 'vendor/autoload.php'; echo class_exists('Shuchkin\\SimpleXLSX') ? 'OK' : 'FAIL';"
+      - name: Upload dependency artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWUS-SIMPLEXLSX-PACK
+          path: |
+            build/composer.json
+            build/composer.lock
+            build/vendor/shuchkin/simplexlsx
+            build/vendor/composer
+          retention-days: 1
